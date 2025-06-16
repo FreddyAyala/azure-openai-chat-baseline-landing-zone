@@ -41,3 +41,6 @@ appgw.pfx
 appgw.crt
 request.json
 chat_wiki.zip
+infra-as-code/bicep/platform/hub.parameters.json
+infra-as-code/bicep/platform/spoke-vnet.parameters.json
+infra-as-code/bicep/workload/workloads.parameters.json

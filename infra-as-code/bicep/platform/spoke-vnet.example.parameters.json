@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "francecentral"
+    },
+    "spokeBaseName": {
+      "value": "spoke01"
+    },
+    "hubVirtualNetworkId": {
+      "value": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-hub-platform/providers/Microsoft.Network/virtualNetworks/vnet-hub"
+    },
+    "hubDnsResolverIp": {
+      "value": "10.0.3.4"
+    },
+    "hubFirewallPrivateIp": {
+      "value": "10.0.1.4"
+    }
+  }
+} 

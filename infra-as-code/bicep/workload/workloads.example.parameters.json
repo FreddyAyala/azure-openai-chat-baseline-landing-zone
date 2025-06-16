@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "baseName": {
+      "value": "aiwork01"
+    },
+    "customDomainName": {
+      "value": "contoso.com"
+    },
+    "appGatewayListenerCertificate": {
+      "value": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURYVENDQWtXZ0F3SUJBZ0lKQUxzNzVKWXhzNzVKMA0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQ=="
+    },
+    "publishFileName": {
+      "value": "chatui.zip"
+    },
+    "yourPrincipalId": {
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    "telemetryOptOut": {
+      "value": false
+    },
+    "hubLogAnalyticsWorkspaceName": {
+      "value": "log-hub"
+    },
+    "hubResourceGroupName": {
+      "value": "rg-hub-platform"
+    },
+    "agentSubnetResourceId": {
+      "value": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-spoke-workload/providers/Microsoft.Network/virtualNetworks/vnet-spoke/subnets/snet-aiAgentsEgress"
+    },
+    "privateEndpointSubnetResourceId": {
+      "value": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-spoke-workload/providers/Microsoft.Network/virtualNetworks/vnet-spoke/subnets/snet-privateEndpoints"
+    },
+    "appServicesSubnetResourceId": {
+      "value": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-spoke-workload/providers/Microsoft.Network/virtualNetworks/vnet-spoke/subnets/snet-appServices"
+    },
+    "appGatewaySubnetResourceId": {
+      "value": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-spoke-workload/providers/Microsoft.Network/virtualNetworks/vnet-spoke/subnets/snet-appGateway"
+    },
+    "buildAgentsSubnetResourceId": {
+      "value": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-spoke-workload/providers/Microsoft.Network/virtualNetworks/vnet-spoke/subnets/snet-buildAgents"
+    },
+    "spokeVirtualNetworkId": {
+      "value": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-spoke-workload/providers/Microsoft.Network/virtualNetworks/vnet-spoke"
+    },
+    "spokeResourceGroupName": {
+      "value": "rg-spoke-workload"
+    }
+  }
+} 
