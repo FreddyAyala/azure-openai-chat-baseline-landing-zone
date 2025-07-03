@@ -19,5 +19,3 @@ resource link 'Microsoft.Network/dnsForwardingRulesets/virtualNetworkLinks@2022-
     }
   }
 }
-
-// add rules to resolve for the desired private dns zones domain names endin with a dot(.)

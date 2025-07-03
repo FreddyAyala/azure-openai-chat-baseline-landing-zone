@@ -622,44 +622,44 @@ resource azureDiagnosticsDcr 'Microsoft.Insights/diagnosticSettings@2021-05-01-p
 }
 
 // Update route table with actual firewall IP after firewall is deployed
-// resource updateRouteTableWithFirewallIp 'Microsoft.Resources/deployments@2024-03-01' = {
-//   name: 'updateRouteTable'
-//   properties: {
-//     mode: 'Incremental'
-//     template: {
-//       '$schema': 'https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#'
-//       contentVersion: '1.0.0.0'
-//       resources: [
-//         {
-//           type: 'Microsoft.Network/routeTables'
-//           apiVersion: '2024-05-01'
-//           name: egressRouteTable.name
-//           location: location
-//           properties: {
-//             routes: [
-//               {
-//                 name: 'internet-to-firewall'
-//                 properties: {
-//                   addressPrefix: '0.0.0.0/0'
-//                   nextHopType: 'VirtualAppliance'
-//                   nextHopIpAddress: azureFirewall.properties.ipConfigurations[0].properties.privateIPAddress
-//                 }
-//               }
-//               {
-//                 name: 'spoke-vnet-direct'
-//                 properties: {
-//                   addressPrefix: '192.168.0.0/16'
-//                   nextHopType: 'VnetLocal'
-//                 }
-//               }
-//             ]
-//           }
-//         }
-//       ]
-//     }
-//   }
-//   dependsOn: [azureFirewall]
-// }
+resource updateRouteTableWithFirewallIp 'Microsoft.Resources/deployments@2024-03-01' = {
+  name: 'updateRouteTable'
+  properties: {
+    mode: 'Incremental'
+    template: {
+      '$schema': 'https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#'
+      contentVersion: '1.0.0.0'
+      resources: [
+        {
+          type: 'Microsoft.Network/routeTables'
+          apiVersion: '2024-05-01'
+          name: egressRouteTable.name
+          location: location
+          properties: {
+            routes: [
+              {
+                name: 'internet-to-firewall'
+                properties: {
+                  addressPrefix: '0.0.0.0/0'
+                  nextHopType: 'VirtualAppliance'
+                  nextHopIpAddress: azureFirewall.properties.ipConfigurations[0].properties.privateIPAddress
+                }
+              }
+              {
+                name: 'spoke-vnet-direct'
+                properties: {
+                  addressPrefix: '192.168.0.0/16'
+                  nextHopType: 'VnetLocal'
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+  dependsOn: [azureFirewall]
+}
 
 // Private DNS Resolver
 resource privateDnsResolver 'Microsoft.Network/dnsResolvers@2022-07-01' = {
@@ -817,39 +817,39 @@ resource dnsForwardingRuleset 'Microsoft.Network/dnsForwardingRulesets@2022-07-0
   //   name: 'resolver-lnk'
   //   properties: {
   //     virtualNetwork: {
-  //       // id: hubVirtualNetwork.id againt the spoke
+  //        id: hubVirtualNetwork.id // against the hub for CENTRALIZED DNS ARCHITECTURE - DISABLED FOR DISTRIBUTED ARCHITECTURE
   //     }
   //   }
   // }
 }
 
 // Update VNet DNS settings to point to DNS Resolver after it's deployed
-// resource updateVnetDnsSettings 'Microsoft.Resources/deployments@2024-03-01' = {
-//   name: 'updateVnetDnsSettings'
-//   properties: {
-//     mode: 'Incremental'
-//     template: {
-//       '$schema': 'https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#'
-//       contentVersion: '1.0.0.0'
-//       resources: [
-//         {
-//           type: 'Microsoft.Network/virtualNetworks'
-//           apiVersion: '2024-05-01'
-//           name: hubVirtualNetwork.name
-//           location: location
-//           properties: {
-//             addressSpace: { addressPrefixes: ['10.0.0.0/16'] }
-//             dhcpOptions: {
-//               dnsServers: [dnsResolverInboundEndpoint.properties.ipConfigurations[0].privateIpAddress]
-//             }
-//             subnets: hubVirtualNetwork.properties.subnets
-//           }
-//         }
-//       ]
-//     }
-//   }
-//   dependsOn: [dnsResolverInboundEndpoint]
-// }
+resource updateVnetDnsSettings 'Microsoft.Resources/deployments@2024-03-01' = {
+  name: 'updateVnetDnsSettings'
+  properties: {
+    mode: 'Incremental'
+    template: {
+      '$schema': 'https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#'
+      contentVersion: '1.0.0.0'
+      resources: [
+        {
+          type: 'Microsoft.Network/virtualNetworks'
+          apiVersion: '2024-05-01'
+          name: hubVirtualNetwork.name
+          location: location
+          properties: {
+            addressSpace: { addressPrefixes: ['10.0.0.0/16'] }
+            dhcpOptions: {
+              dnsServers: [dnsResolverInboundEndpoint.properties.ipConfigurations[0].privateIpAddress]
+            }
+            subnets: hubVirtualNetwork.properties.subnets
+          }
+        }
+      ]
+    }
+  }
+  dependsOn: [dnsResolverInboundEndpoint]
+}
 
 // Outputs
 output hubVirtualNetworkName string = hubVirtualNetwork.name
@@ -868,4 +868,3 @@ output privateDnsZoneIds object = {
   websites: privateDnsZone[7].id
 }
 output dnsResolverInboundEndpointIp string = dnsResolverInboundEndpoint.properties.ipConfigurations[0].privateIpAddress
-
