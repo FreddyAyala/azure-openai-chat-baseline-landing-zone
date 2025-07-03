@@ -17,6 +17,9 @@ param baseName string
 @minLength(4)
 param logAnalyticsWorkspaceName string
 
+@description('The resource group name of the hub')
+param hubResourceGroupName string
+
 @description('The resource group name of the spoke where the VNet exists')
 param spokeResourceGroupName string
 
@@ -64,6 +67,7 @@ resource webApp 'Microsoft.Web/sites@2024-04-01' existing = {
 
 resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2025-02-01' existing = {
   name: logAnalyticsWorkspaceName
+  scope: resourceGroup(hubResourceGroupName)
 }
 
 resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {

@@ -206,6 +206,7 @@ module deployWebApp 'web-app.bicep' = {
     location: location
     baseName: baseName
     logAnalyticsWorkspaceName: hubLogAnalyticsWorkspaceName
+    hubResourceGroupName: hubResourceGroupName
     spokeResourceGroupName: spokeResourceGroupName
     publishFileName: publishFileName
     virtualNetworkName: spokeVnetName
@@ -225,6 +226,7 @@ module deployApplicationGateway 'application-gateway.bicep' = {
     location: location
     baseName: baseName
     logAnalyticsWorkspaceName: hubLogAnalyticsWorkspaceName
+    hubResourceGroupName: hubResourceGroupName
     spokeResourceGroupName: spokeResourceGroupName
     customDomainName: customDomainName
     appName: deployWebApp.outputs.appName

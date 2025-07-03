@@ -17,6 +17,9 @@ param location string = resourceGroup().location
 @minLength(4)
 param logAnalyticsWorkspaceName string
 
+@description('The resource group name of the hub')
+param hubResourceGroupName string
+
 @description('The resource group name of the spoke where the VNet exists')
 param spokeResourceGroupName string
 
@@ -81,6 +84,7 @@ resource webAppDeploymentStorageAccount 'Microsoft.Storage/storageAccounts@2024-
 
 resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2025-02-01' existing = {
   name: logAnalyticsWorkspaceName
+  scope: resourceGroup(hubResourceGroupName)
 }
 
 @description('Built-in Role: [Storage Blob Data Reader](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#storage-blob-data-reader)')
@@ -104,6 +108,7 @@ resource azureAiProjectManagerRole 'Microsoft.Authorization/roleDefinitions@2022
 
 resource appServiceExistingPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' existing = {
   name: 'privatelink.azurewebsites.net'
+  scope: resourceGroup(hubResourceGroupName)
 }
 
 @description('Existing Azure AI Foundry account. This account is where the agents hosted in Azure AI Agent service will be deployed. The web app code calls to these agents.')

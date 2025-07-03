@@ -57,40 +57,34 @@ This test environment provides a complete **Hub-Spoke architecture** ready for A
 ### **Option 2: Manual Deployment**
 ```bash
 # 1. Create hub resource group
-az group create --name rg-hub-test --location eastus2
+RESOURCE_GROUP_HUB=$RESOURCE_GROUP-hub
+RESOURCE_GROUP_SPOKE=$RESOURCE_GROUP-spoke
+
+az group create --name $RESOURCE_GROUP_HUB --location $LOCATION
 
 # 2. Deploy hub infrastructure
 az deployment group create \
-  --resource-group rg-hub-test \
+  --resource-group $RESOURCE_GROUP_HUB \
   --template-file test-hub-vnet.bicep \
-  --parameters hubBaseName=hub jumpBoxAdminPassword=SecurePassword123!
+  -p hubBaseName=$BASE_NAME
 
 # 3. Create spoke resource group
-az group create --name rg-spoke-test --location eastus2
+az group create --name $RESOURCE_GROUP_SPOKE --location $LOCATION
 
 # 4. Get hub outputs
-HUB_VNET_ID=$(az deployment group show --resource-group rg-hub-test --name test-hub-vnet --query "properties.outputs.hubVirtualNetworkId.value" -o tsv)
-DNS_RESOLVER_IP=$(az deployment group show --resource-group rg-hub-test --name test-hub-vnet --query "properties.outputs.dnsResolverInboundEndpointIp.value" -o tsv)
-FIREWALL_IP=$(az deployment group show --resource-group rg-hub-test --name test-hub-vnet --query "properties.outputs.azureFirewallPrivateIp.value" -o tsv)
+HUB_VNET_ID=$(az deployment group show --resource-group $RESOURCE_GROUP_HUB --name test-hub-vnet --query "properties.outputs.hubVirtualNetworkId.value" -o tsv)
+DNS_RESOLVER_IP=$(az deployment group show --resource-group $RESOURCE_GROUP_HUB --name test-hub-vnet --query "properties.outputs.dnsResolverInboundEndpointIp.value" -o tsv)
+FIREWALL_IP=$(az deployment group show --resource-group $RESOURCE_GROUP_HUB --name test-hub-vnet --query "properties.outputs.azureFirewallPrivateIp.value" -o tsv)
 
 # 5. Deploy spoke infrastructure
 az deployment group create \
-  --resource-group rg-spoke-test \
+  --resource-group $RESOURCE_GROUP_SPOKE \
   --template-file test-spoke-vnet.bicep \
   --parameters spokeBaseName=spoke \
                hubVirtualNetworkId="$HUB_VNET_ID" \
                hubDnsResolverIp="$DNS_RESOLVER_IP" \
-               hubFirewallPrivateIp="$FIREWALL_IP"
-
-# 6. Create hub-to-spoke peering
-az network vnet peering create \
-  --resource-group rg-hub-test \
-  --vnet-name vnet-hub \
-  --name peer-to-spoke \
-  --remote-vnet "$SPOKE_VNET_ID" \
-  --allow-vnet-access \
-  --allow-forwarded-traffic \
-  --allow-gateway-transit
+               hubFirewallPrivateIp="$FIREWALL_IP" \
+               spokeBaseName=$BASE_NAME
 ```
 
 ## 📋 Prerequisites
@@ -125,8 +119,8 @@ nslookup privatelink.cognitiveservices.azure.com
 ### **2. Test VNet Peering**
 ```bash
 # Check peering status
-az network vnet peering list --resource-group rg-hub-test --vnet-name vnet-hub --output table
-az network vnet peering list --resource-group rg-spoke-test --vnet-name vnet-spoke --output table
+az network vnet peering list --resource-group $RESOURCE_GROUP_HUB --vnet-name vnet-hub --output table
+az network vnet peering list --resource-group $RESOURCE_GROUP_SPOKE --vnet-name vnet-spoke --output table
 # Both should show "Connected" and "FullyInSync"
 ```
 
@@ -226,14 +220,14 @@ az group delete --name rg-spoke-test --yes --no-wait
 ### **Useful Commands**
 ```bash
 # Check deployment status
-az deployment group list --resource-group rg-hub-test --output table
-az deployment group list --resource-group rg-spoke-test --output table
+az deployment group list --resource-group $RESOURCE_GROUP_HUB --output table
+az deployment group list --resource-group $RESOURCE_GROUP_SPOKE --output table
 
 # View deployment errors
-az deployment operation group list --resource-group rg-hub-test --name test-hub-vnet
+az deployment operation group list --resource-group $RESOURCE_GROUP_HUB --name test-hub-vnet
 
 # Test connectivity from jump box
-az network bastion ssh --name bastion-hub --resource-group rg-hub-test --target-resource-id <vm-resource-id> --auth-type password --username vmadmin
+az network bastion ssh --name bastion-hub --resource-group $RESOURCE_GROUP_HUB --target-resource-id <vm-resource-id> --auth-type password --username vmadmin
 ```
 
 ## 📚 References
@@ -272,4 +266,4 @@ az network bastion ssh --name bastion-hub --resource-group rg-hub-test --target-
    3. Deploy AI Agent Service in snet-aiAgentsEgress
 
 🧹 Cleanup:
-   Run .\cleanup.ps1 to remove all resources when done 
+   Run .\cleanup.ps1 to remove all resources when done
