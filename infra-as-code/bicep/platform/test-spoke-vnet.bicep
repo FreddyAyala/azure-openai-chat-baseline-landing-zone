@@ -160,7 +160,7 @@ resource spokeVirtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   location: location
   properties: {
     addressSpace: { addressPrefixes: [spokeVirtualNetworkAddressPrefix] }
-    // dhcpOptions: { dnsServers: [hubDnsResolverIp] } // Points to hub DNS Resolver - DISABLED FOR DISTRIBUTED ARCHITECTURE
+    dhcpOptions: { dnsServers: [hubDnsResolverIp] } // Points to hub DNS Resolver - ENABLED FOR HYBRID ARCHITECTURE: all is resolved via hub dns except those domains that are injected since resources not supporting centralized dns resolution architecture
     subnets: [
       {
         name: 'snet-appGateway'
