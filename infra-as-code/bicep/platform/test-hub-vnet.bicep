@@ -701,11 +701,41 @@ resource dnsForwardingRuleset 'Microsoft.Network/dnsForwardingRulesets@2022-07-0
     ]
   }
 
+  // required by Azure AI Foundry Project capability host (vector)
+  resource blobStorageDNSForwardingRule 'forwardingRules' = {
+    name: 'blob-storage'
+    properties: {
+      domainName: 'blob.core.windows.net.'
+      forwardingRuleState: 'Enabled'
+      targetDnsServers: [
+        {
+          ipAddress: '10.0.3.4'
+          port: 53
+        }
+      ]
+    }
+  }
+
   // required by Azure AI Foundry Project capability host (thread)
   resource documentsDNSForwardingRule 'forwardingRules' = {
     name: 'documents'
     properties: {
       domainName: 'documents.azure.com.'
+      forwardingRuleState: 'Enabled'
+      targetDnsServers: [
+        {
+          ipAddress: '10.0.3.4'
+          port: 53
+        }
+      ]
+    }
+  }
+
+  // required by Azure AI Foundry Project capability host (search)
+  resource searchDNSForwardingRule 'forwardingRules' = {
+    name: 'search'
+    properties: {
+      domainName: 'search.windows.net.'
       forwardingRuleState: 'Enabled'
       targetDnsServers: [
         {
