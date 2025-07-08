@@ -701,6 +701,34 @@ resource dnsForwardingRuleset 'Microsoft.Network/dnsForwardingRulesets@2022-07-0
     ]
   }
 
+  resource cognitiveServicesDNSForwardingRule 'forwardingRules' = {
+    name: 'cogntiveServices'
+    properties: {
+      domainName: 'cognitiveservices.azure.com.'
+      forwardingRuleState: 'Enabled'
+      targetDnsServers: [
+        {
+          ipAddress: '10.0.3.4'
+          port: 53
+        }
+      ]
+    }
+  }
+
+  resource servicesAiDNSForwardingRule 'forwardingRules' = {
+    name: 'servicesAI'
+    properties: {
+      domainName: 'services.ai.azure.com.'
+      forwardingRuleState: 'Enabled'
+      targetDnsServers: [
+        {
+          ipAddress: '10.0.3.4'
+          port: 53
+        }
+      ]
+    }
+  }
+
   // required by Azure AI Foundry Project capability host (vector)
   resource blobStorageDNSForwardingRule 'forwardingRules' = {
     name: 'blob-storage'
@@ -721,6 +749,20 @@ resource dnsForwardingRuleset 'Microsoft.Network/dnsForwardingRulesets@2022-07-0
     name: 'documents'
     properties: {
       domainName: 'documents.azure.com.'
+      forwardingRuleState: 'Enabled'
+      targetDnsServers: [
+        {
+          ipAddress: '10.0.3.4'
+          port: 53
+        }
+      ]
+    }
+  }
+
+  resource openaiDNSForwardingRule 'forwardingRules' = {
+    name: 'openai'
+    properties: {
+      domainName: 'openai.azure.com.'
       forwardingRuleState: 'Enabled'
       targetDnsServers: [
         {
