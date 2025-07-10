@@ -25,13 +25,14 @@ var privateEndpointsSubnetPrefix = '192.168.2.0/25'  // Expanded from /27 to /25
 var buildAgentsSubnetPrefix = '192.168.2.128/27'    // Moved to avoid overlap with expanded private endpoints subnet
 var aiAgentsEgressSubnetPrefix = '192.168.3.0/24'
 
-var spokeVirtualNetworkName = 'vnet-${spokeBaseName}'
+var spokeVirtualNetworkName = 'vnet-spoke-${spokeBaseName}'
 
 // Route Table for spoke traffic through hub firewall
 resource spokeRouteTable 'Microsoft.Network/routeTables@2024-05-01' = {
   name: 'udr-spoke-to-firewall'
   location: location
   properties: {
+    disableBgpRoutePropagation: true
     routes: [
       {
         name: 'internet-to-hub-firewall'
@@ -159,17 +160,18 @@ resource spokeVirtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   location: location
   properties: {
     addressSpace: { addressPrefixes: [spokeVirtualNetworkAddressPrefix] }
-    dhcpOptions: { dnsServers: ['168.63.129.16'] } // Use Azure DNS instead of private DNS resolver - TESTING FOR CAPABILITY HOST ISSUE
-    // dhcpOptions: { dnsServers: [hubDnsResolverIp] } // Points to hub DNS Resolver - TEMPORARILY DISABLED FOR TESTING
+    dhcpOptions: { dnsServers: [hubDnsResolverIp] } // Points to hub DNS Resolver - ENABLED FOR HYBRID ARCHITECTURE: all is resolved via hub dns except those domains that are injected since resources not supporting centralized dns resolution architecture
     subnets: [
       {
         name: 'snet-appGateway'
         properties: {
           addressPrefix: appGatewaySubnetPrefix
           delegations: []
+          // networkSecurityGroup: {
+          //   id: appGatewaySubnetNsg.id
+          // }
           privateEndpointNetworkPolicies: 'Disabled'
           privateLinkServiceNetworkPolicies: 'Enabled'
-          routeTable: { id: spokeRouteTable.id }
         }
       }
       {
@@ -182,9 +184,6 @@ resource spokeVirtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
               properties: { serviceName: 'Microsoft.Web/serverFarms' }
             }
           ]
-          privateEndpointNetworkPolicies: 'Disabled'
-          privateLinkServiceNetworkPolicies: 'Enabled'
-          routeTable: { id: spokeRouteTable.id }
         }
       }
       {
@@ -192,8 +191,9 @@ resource spokeVirtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
         properties: {
           addressPrefix: privateEndpointsSubnetPrefix
           delegations: []
-          privateEndpointNetworkPolicies: 'Disabled'
+          privateEndpointNetworkPolicies: 'Enabled'
           privateLinkServiceNetworkPolicies: 'Enabled'
+          defaultOutboundAccess: false // This subnet should never be the source of egress traffic.
           networkSecurityGroup: { id: privateEndpointsNsg.id }
           routeTable: { id: spokeRouteTable.id }
         }
@@ -229,6 +229,18 @@ resource spokeVirtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   }
 }
 
+/*** EXISTING HUB RESOURCES ***/
+
+resource hubResourceGroup 'Microsoft.Resources/resourceGroups@2024-03-01' existing = {
+  scope: subscription()
+  name: split(hubVirtualNetworkId,'/')[4]
+}
+
+resource hubVirtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' existing = {
+  scope: hubResourceGroup
+  name: last(split(hubVirtualNetworkId,'/'))
+}
+
 // VNet Peering: Spoke to Hub
 resource spokeToHubPeering 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@2024-05-01' = {
   name: 'peer-to-hub'
@@ -238,18 +250,29 @@ resource spokeToHubPeering 'Microsoft.Network/virtualNetworks/virtualNetworkPeer
     allowForwardedTraffic: true
     allowGatewayTransit: false
     useRemoteGateways: false
-    remoteVirtualNetwork: { id: hubVirtualNetworkId }
+    remoteVirtualNetwork: { id: hubVirtualNetwork.id }
   }
 }
 
-// VNet Peering: Hub to Spoke (using module for cross-resource-group deployment)
-module hubToSpokePeering '../modules/hub-peering.bicep' = {
-  name: 'hub-to-spoke-peering'
-  scope: resourceGroup(split(hubVirtualNetworkId, '/')[4])
+module hubToSpokePeering 'modules/virtualNetworkPeering.bicep' = {
+  name: 'peer-to-spoke'
+  dependsOn: [
+    spokeToHubPeering
+  ]
+  scope: hubResourceGroup
   params: {
-    hubVNetName: split(hubVirtualNetworkId, '/')[8]
-    spokeVNetResourceId: spokeVirtualNetwork.id
-    peeringName: 'peer-to-spoke'
+    localVnetName: hubVirtualNetwork.name
+    remoteVirtualNetworkId: spokeVirtualNetwork.id
+  }
+}
+
+module hubToSpokeDnsVnetLink 'modules/dnsVirtualNetworkLink.bicep' = {
+  name: 'hub-to-spoke-dnslnk'
+  dependsOn: []
+  scope: hubResourceGroup
+  params: {
+    localDNSForwardingRulesetName: 'ruleset-${spokeBaseName}'
+    remoteVirtualNetworkId: spokeVirtualNetwork.id
   }
 }
 
@@ -261,4 +284,4 @@ output privateEndpointsSubnetResourceId string = '${spokeVirtualNetwork.id}/subn
 output buildAgentsSubnetResourceId string = '${spokeVirtualNetwork.id}/subnets/snet-buildAgents'
 output aiAgentsEgressSubnetResourceId string = '${spokeVirtualNetwork.id}/subnets/snet-aiAgentsEgress'
 output appGatewaySubnetResourceId string = '${spokeVirtualNetwork.id}/subnets/snet-appGateway'
-output peeringStatus string = 'Spoke: ${spokeToHubPeering.properties.peeringState} | Hub: ${hubToSpokePeering.outputs.peeringState}' 
+output peeringStatus string = 'Spoke: ${spokeToHubPeering.properties.peeringState} | Hub: ${hubToSpokePeering.outputs.peeringState}'

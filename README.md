@@ -111,7 +111,36 @@ The implementation covers three main scenarios:
    ```bash
    LOCATION=eastus
    BASE_NAME=<unique 6-8 character name>
-   RESOURCE_GROUP="rg-chat-alz-baseline-${LOCATION}"
+   RESOURCE_GROUP="rg-chat-lz-baseline-${BASE_NAME}"
+   ```
+
+1. Before procceeding ensure your platform team provisioned the required resources in the platform subscription. This includes:
+
+   - A hub resource group with a Log Analytics workspace
+   - A spoke resource group with the following subnets:
+     - AI Agents Egress Subnet
+     - Private Endpoints Subnet
+     - App Services Subnet
+     - Application Gateway Subnet
+     - Build Agents Subnet
+
+   The following variables will be used in the deployment script to reference these resources.
+
+1. Get values from platform team required for workload deployment:
+
+   ```bash
+   # hub resources variables
+   RESOURCE_GROUP_HUB="<platform-provided resource group for hub>"
+   LA_HUB_NAME=$(az deployment group show -g $RESOURCE_GROUP_HUB -n test-hub-vnet --query properties.outputs.logAnalyticsWorkspaceName.value -o tsv)
+
+   # spoke resources variables
+   RESOURCE_GROUP_SPOKE="<platform-provided resource group for spoke>"
+   AGENT_SUBNET_RESOURCE_ID=$(az deployment group show -g $RESOURCE_GROUP_SPOKE -n test-spoke-vnet --query properties.outputs.aiAgentsEgressSubnetResourceId.value -o tsv)
+   PE_SUBNET_RESOURCE_ID=$(az deployment group show -g $RESOURCE_GROUP_SPOKE -n test-spoke-vnet --query properties.outputs.privateEndpointsSubnetResourceId.value -o tsv)
+   APP_SERVICES_SUBNET_RESOURCE_ID=$(az deployment group show -g $RESOURCE_GROUP_SPOKE -n test-spoke-vnet --query properties.outputs.appServicesSubnetResourceId.value -o tsv)
+   APP_GATEWAY_SUBNET_RESOURCE_ID=$(az deployment group show -g $RESOURCE_GROUP_SPOKE -n test-spoke-vnet --query properties.outputs.appGatewaySubnetResourceId.value -o tsv)
+   BUILD_AGENTS_SUBNET_RESOURCE_ID=$(az deployment group show -g $RESOURCE_GROUP_SPOKE -n test-spoke-vnet --query properties.outputs.buildAgentsSubnetResourceId.value -o tsv)
+   SPOKE_VNET_ID=$(az deployment group show -g $RESOURCE_GROUP_SPOKE -n test-spoke-vnet --query properties.outputs.spokeVirtualNetworkId.value -o tsv)
    ```
 
 6. Deploy resources:
@@ -119,11 +148,18 @@ The implementation covers three main scenarios:
    az group create -l $LOCATION -n $RESOURCE_GROUP
    PRINCIPAL_ID=$(az ad signed-in-user show --query id -o tsv)
 
-   az deployment sub create -f ./infra-as-code/bicep/main.bicep \
-     -n chat-baseline-000 \
-     -l $LOCATION \
-     -p @./infra-as-code/bicep/parameters.alz.json \
-     -p workloadResourceGroupName=${RESOURCE_GROUP} \
+   az deployment group create -f ./infra-as-code/bicep/workload/main.bicep \
+     -n ai-foundry-chat-lz-baseline-${BASE_NAME} \
+     -g $RESOURCE_GROUP \
+     -p hubLogAnalyticsWorkspaceName=${LA_HUB_NAME} \
+     -p hubResourceGroupName=${RESOURCE_GROUP_HUB} \
+     -p agentSubnetResourceId=${AGENT_SUBNET_RESOURCE_ID} \
+     -p privateEndpointSubnetResourceId=${PE_SUBNET_RESOURCE_ID} \
+     -p appServicesSubnetResourceId=${APP_SERVICES_SUBNET_RESOURCE_ID} \
+     -p appGatewaySubnetResourceId=${APP_GATEWAY_SUBNET_RESOURCE_ID} \
+     -p buildAgentsSubnetResourceId=${BUILD_AGENTS_SUBNET_RESOURCE_ID} \
+     -p spokeVirtualNetworkId=${SPOKE_VNET_ID} \
+     -p spokeResourceGroupName=${RESOURCE_GROUP_SPOKE} \
      -p appGatewayListenerCertificate=${APP_GATEWAY_LISTENER_CERTIFICATE} \
      -p baseName=${BASE_NAME} \
      -p yourPrincipalId=${PRINCIPAL_ID}

@@ -31,7 +31,7 @@ var jumpBoxSubnetPrefix = '10.0.2.64/27'
 var dnsResolverInboundSubnetPrefix = '10.0.3.0/28'
 var dnsResolverOutboundSubnetPrefix = '10.0.3.16/28'
 
-var hubVirtualNetworkName = 'vnet-${hubBaseName}'
+var hubVirtualNetworkName = 'vnet-hub-${hubBaseName}'
 
 // Private DNS zones required for AI services
 var privateDnsZones = [
@@ -43,8 +43,6 @@ var privateDnsZones = [
   'privatelink.documents.azure.com'
   'privatelink.vaultcore.azure.net'
   'privatelink.azurewebsites.net'
-  'privatelink.api.azureml.ms'
-  'privatelink.notebooks.azure.net'
 ]
 
 // Log Analytics Workspace
@@ -69,7 +67,9 @@ resource hubVirtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   location: location
   properties: {
     addressSpace: { addressPrefixes: [hubVirtualNetworkAddressPrefix] }
-    dhcpOptions: { dnsServers: ['10.0.1.4'] } // Points to Azure Firewall for DNS proxy
+    //dhcpOptions: { dnsServers: ['10.0.1.4'] } // Points to Azure Firewall for DNS proxy -> but it must be configured as standard or premium SKU, otherwise fails silently.
+    //dhcpOptions: { dnsServers: ['10.0.3.4'] } // Points to Azure Private DNS resolver
+
     subnets: [
       {
         name: 'AzureFirewallSubnet'
@@ -214,7 +214,7 @@ resource azureFirewallPolicy 'Microsoft.Network/firewallPolicies@2024-05-01' = {
   properties: {
     sku: { tier: 'Basic' }
     threatIntelMode: 'Alert'
-    
+
   }
 
   resource networkRules 'ruleCollectionGroups' = {
@@ -700,6 +700,117 @@ resource dnsForwardingRuleset 'Microsoft.Network/dnsForwardingRulesets@2022-07-0
       { id: dnsResolverOutboundEndpoint.id }
     ]
   }
+
+  resource cognitiveServicesDNSForwardingRule 'forwardingRules' = {
+    name: 'cogntiveServices'
+    properties: {
+      domainName: 'cognitiveservices.azure.com.'
+      forwardingRuleState: 'Enabled'
+      targetDnsServers: [
+        {
+          ipAddress: '10.0.3.4'
+          port: 53
+        }
+      ]
+    }
+  }
+
+  resource servicesAiDNSForwardingRule 'forwardingRules' = {
+    name: 'servicesAI'
+    properties: {
+      domainName: 'services.ai.azure.com.'
+      forwardingRuleState: 'Enabled'
+      targetDnsServers: [
+        {
+          ipAddress: '10.0.3.4'
+          port: 53
+        }
+      ]
+    }
+  }
+
+  // required by Azure AI Foundry Project capability host (vector)
+  resource blobStorageDNSForwardingRule 'forwardingRules' = {
+    name: 'blob-storage'
+    properties: {
+      domainName: 'blob.core.windows.net.'
+      forwardingRuleState: 'Enabled'
+      targetDnsServers: [
+        {
+          ipAddress: '10.0.3.4'
+          port: 53
+        }
+      ]
+    }
+  }
+
+  // required by Azure AI Foundry Project capability host (thread)
+  resource documentsDNSForwardingRule 'forwardingRules' = {
+    name: 'documents'
+    properties: {
+      domainName: 'documents.azure.com.'
+      forwardingRuleState: 'Enabled'
+      targetDnsServers: [
+        {
+          ipAddress: '10.0.3.4'
+          port: 53
+        }
+      ]
+    }
+  }
+
+  resource openaiDNSForwardingRule 'forwardingRules' = {
+    name: 'openai'
+    properties: {
+      domainName: 'openai.azure.com.'
+      forwardingRuleState: 'Enabled'
+      targetDnsServers: [
+        {
+          ipAddress: '10.0.3.4'
+          port: 53
+        }
+      ]
+    }
+  }
+
+  // required by Azure AI Foundry Project capability host (search)
+  resource searchDNSForwardingRule 'forwardingRules' = {
+    name: 'search'
+    properties: {
+      domainName: 'search.windows.net.'
+      forwardingRuleState: 'Enabled'
+      targetDnsServers: [
+        {
+          ipAddress: '10.0.3.4'
+          port: 53
+        }
+      ]
+    }
+  }
+
+  // required by AppGW
+  resource kvDNSForwardingRule 'forwardingRules' = {
+    name: 'kv'
+    properties: {
+      domainName: 'vault.azure.net.'
+      forwardingRuleState: 'Enabled'
+      targetDnsServers: [
+        {
+          ipAddress: '10.0.3.4'
+          port: 53
+        }
+      ]
+    }
+  }
+
+  // resource link 'virtualNetworkLinks' = {
+  //   name: 'resolver-lnk'
+  //   properties: {
+  //     virtualNetwork: {
+  //        id: hubVirtualNetwork.id // against the hub for CENTRALIZED DNS ARCHITECTURE - DISABLED FOR DISTRIBUTED ARCHITECTURE
+  //     }
+  //   }
+  // }
 }
 
 // Update VNet DNS settings to point to DNS Resolver after it's deployed
@@ -746,5 +857,4 @@ output privateDnsZoneIds object = {
   keyvault: privateDnsZone[6].id
   websites: privateDnsZone[7].id
 }
-output dnsResolverInboundEndpointIp string = dnsResolverInboundEndpoint.properties.ipConfigurations[0].privateIpAddress 
-
+output dnsResolverInboundEndpointIp string = dnsResolverInboundEndpoint.properties.ipConfigurations[0].privateIpAddress
